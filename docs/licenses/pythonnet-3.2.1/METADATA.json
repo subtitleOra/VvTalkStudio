@@ -1,0 +1,17 @@
+{
+  "name": "pythonnet",
+  "version": "3.2.1",
+  "license_expression": "MIT",
+  "license_metadata": null,
+  "urls": [
+    "Homepage, https://pythonnet.github.io/",
+    "Sources, https://github.com/pythonnet/pythonnet"
+  ],
+  "files": [
+    {
+      "path": "pythonnet-3.2.1/pythonnet-3.2.1.dist-info/licenses/LICENSE",
+      "size": 1104,
+      "sha256": "e1dc3a6ff017a6800dc27a7220500f512b95fbcd996d38ebbbff85c693245369"
+    }
+  ]
+}

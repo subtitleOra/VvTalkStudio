@@ -1,0 +1,19 @@
+{
+  "name": "pypinyin",
+  "version": "0.55.0",
+  "license_expression": null,
+  "license_metadata": "MIT",
+  "urls": [
+    "Documentation, https://pypinyin.readthedocs.io/",
+    "Source, https://github.com/mozillazg/python-pinyin",
+    "Tracker, https://github.com/mozillazg/python-pinyin/issues",
+    "Homepage, https://github.com/mozillazg/python-pinyin"
+  ],
+  "files": [
+    {
+      "path": "pypinyin-0.55.0/pypinyin-0.55.0.dist-info/licenses/LICENSE.txt",
+      "size": 1105,
+      "sha256": "1e6c90014b4912815c296ee64bb6f6280af47e6d4c5d80e86232dfc5defe764c"
+    }
+  ]
+}

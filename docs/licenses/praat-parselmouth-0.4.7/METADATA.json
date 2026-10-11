@@ -1,0 +1,19 @@
+{
+  "name": "praat-parselmouth",
+  "version": "0.4.7",
+  "license_expression": null,
+  "license_metadata": "GPLv3",
+  "urls": [
+    "Bug Tracker, https://github.com/YannickJadoul/Parselmouth/issues",
+    "Documentation, https://parselmouth.readthedocs.io/",
+    "Source Code, https://github.com/YannickJadoul/Parselmouth",
+    "Homepage, https://github.com/YannickJadoul/Parselmouth"
+  ],
+  "files": [
+    {
+      "path": "praat-parselmouth-0.4.7/praat_parselmouth-0.4.7.dist-info/licenses/LICENSE",
+      "size": 35821,
+      "sha256": "0b383d5a63da644f628d99c33976ea6487ed89aaa59f0b3257992deac1171e6b"
+    }
+  ]
+}

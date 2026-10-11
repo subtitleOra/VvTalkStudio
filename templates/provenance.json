@@ -1,0 +1,61 @@
+{
+  "template": "speech_template.acep",
+  "sha256": "4e8b7557c63561afbd03b5cec808eab6ee8e0d58bd47fc21c602721be717ce9a",
+  "bytes": 1787,
+  "noteCount": 9,
+  "source": "User-generated ACE Studio project format fixture; not a vendor-supplied content template",
+  "headerFormatReference": {
+    "repository": "SoulMelody/LibreSVIP",
+    "commit": "6944c2bae4085cd60bf55add12aba3034f4cf18b",
+    "path": "libresvip/plugins/acep/acep_io.py",
+    "url": "https://raw.githubusercontent.com/SoulMelody/LibreSVIP/6944c2bae4085cd60bf55add12aba3034f4cf18b/libresvip/plugins/acep/acep_io.py",
+    "sourceFileSha256": "6b14b63eb728acd81728fbdd806af5154b11f712c85f4bd14270fa84225dabcb",
+    "implementationCopied": false
+  },
+  "header": {
+    "magic": "ACEP2",
+    "flag": 1,
+    "headerSizeField": 0,
+    "contentOffset": 192,
+    "encryptedMetadataZeroBytes": 138,
+    "metadataFlag": 1,
+    "contentHashZeroBytes": 16,
+    "paddingZeroBytes": 3
+  },
+  "body": {
+    "singerLibraryId": "",
+    "historicalIdentifiersRemoved": true,
+    "externalEffectInstancesRemoved": true,
+    "historicalCurvesRemoved": true,
+    "stockSingerIdAndSeedCodePreservedAsSeparateNamespaces": true,
+    "rawAudioAndVoiceModelIncluded": false
+  },
+  "verification": {
+    "readWriteReadbackEqual": true,
+    "originalLocalTemplateUnchanged": true,
+    "templateNoteGeometryAndLyricsEqual": true,
+    "generatedComparisons": [
+      {
+        "language": "zh",
+        "notes": 9,
+        "musicalPayloadEqual": true
+      },
+      {
+        "language": "ja",
+        "notes": 13,
+        "musicalPayloadEqual": true
+      },
+      {
+        "language": "en",
+        "notes": 7,
+        "musicalPayloadEqual": true
+      },
+      {
+        "language": "zh-long",
+        "patterns": 2,
+        "musicalPayloadEqual": true
+      }
+    ],
+    "newHostLoadPerformed": false
+  }
+}

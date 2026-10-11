@@ -1,0 +1,19 @@
+{
+  "name": "cbor2",
+  "version": "6.1.5",
+  "license_expression": "MIT",
+  "license_metadata": null,
+  "urls": [
+    "Changelog, https://cbor2.readthedocs.io/en/latest/versionhistory.html",
+    "Documentation, https://cbor2.readthedocs.org/en/latest/",
+    "Source Code, https://github.com/agronholm/cbor2",
+    "Issue Tracker, https://github.com/agronholm/cbor2/issues"
+  ],
+  "files": [
+    {
+      "path": "cbor2-6.1.5/cbor2-6.1.5.dist-info/licenses/LICENSE.txt",
+      "size": 1101,
+      "sha256": "2c5440ab09944b1249ce6447c27030969c22a5e212e90c2e0db45705c96324c8"
+    }
+  ]
+}

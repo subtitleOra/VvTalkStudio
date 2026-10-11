@@ -1,0 +1,21 @@
+{
+  "name": "cffi",
+  "version": "2.1.1",
+  "license_expression": "MIT-0",
+  "license_metadata": null,
+  "urls": [
+    "Documentation, https://cffi.readthedocs.io/",
+    "Changelog, https://cffi.readthedocs.io/en/latest/whatsnew.html",
+    "Download, https://github.com/python-cffi/cffi/releases",
+    "Contact, https://groups.google.com/forum/#!forum/python-cffi",
+    "Source Code, https://github.com/python-cffi/cffi",
+    "Issue Tracker, https://github.com/python-cffi/cffi/issues"
+  ],
+  "files": [
+    {
+      "path": "cffi-2.1.1/cffi-2.1.1.dist-info/licenses/LICENSE",
+      "size": 1123,
+      "sha256": "5ba24ddc57067f9249add644c3afc41a5d6dc37e23433ef759d95df370b0af63"
+    }
+  ]
+}

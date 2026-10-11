@@ -1,0 +1,16 @@
+{
+  "name": "pycparser",
+  "version": "3.11",
+  "license_expression": "BSD-3-Clause",
+  "license_metadata": null,
+  "urls": [
+    "Homepage, https://github.com/eliben/pycparser"
+  ],
+  "files": [
+    {
+      "path": "pycparser-3.11/pycparser-3.11.dist-info/licenses/LICENSE",
+      "size": 1543,
+      "sha256": "0a9e78156ae8b96caf1b4f11ac2df424b83de29736f9e757630548a6272fdf90"
+    }
+  ]
+}

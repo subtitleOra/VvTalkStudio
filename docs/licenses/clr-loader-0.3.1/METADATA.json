@@ -1,0 +1,17 @@
+{
+  "name": "clr_loader",
+  "version": "0.3.1",
+  "license_expression": null,
+  "license_metadata": null,
+  "urls": [
+    "Sources, https://github.com/pythonnet/clr-loader",
+    "Documentation, https://pythonnet.github.io/clr-loader/"
+  ],
+  "files": [
+    {
+      "path": "clr-loader-0.3.1/clr_loader-0.3.1.dist-info/licenses/LICENSE",
+      "size": 1079,
+      "sha256": "dd6bdca10cdc3b24c6b0b6cef5fd611b7feb6917f127833283ddcdb310d3b453"
+    }
+  ]
+}

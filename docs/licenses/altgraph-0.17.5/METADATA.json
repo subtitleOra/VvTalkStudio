@@ -1,0 +1,19 @@
+{
+  "name": "altgraph",
+  "version": "0.17.5",
+  "license_expression": null,
+  "license_metadata": "MIT",
+  "urls": [
+    "Documentation, https://altgraph.readthedocs.io/en/latest/",
+    "Issue tracker, https://github.com/ronaldoussoren/altgraph/issues",
+    "Repository, https://github.com/ronaldoussoren/altgraph",
+    "Homepage, https://altgraph.readthedocs.io"
+  ],
+  "files": [
+    {
+      "path": "altgraph-0.17.5/altgraph-0.17.5.dist-info/LICENSE",
+      "size": 1002,
+      "sha256": "6c194d6db0c64d45535d10c95142b9b0cda7b7dcc7f1ddee302b3d536f3dbe46"
+    }
+  ]
+}

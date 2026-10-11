@@ -1,0 +1,19 @@
+{
+  "name": "pip",
+  "version": "25.0.1",
+  "license_expression": null,
+  "license_metadata": "MIT",
+  "urls": [
+    "Homepage, https://pip.pypa.io/",
+    "Documentation, https://pip.pypa.io",
+    "Source, https://github.com/pypa/pip",
+    "Changelog, https://pip.pypa.io/en/stable/news/"
+  ],
+  "files": [
+    {
+      "path": "pip-25.0.1/pip-25.0.1.dist-info/LICENSE.txt",
+      "size": 1093,
+      "sha256": "634300a669d49aeae65b12c6c48c924c51a4cdf3d1ff086dc3456dc8bcaa2104"
+    }
+  ]
+}

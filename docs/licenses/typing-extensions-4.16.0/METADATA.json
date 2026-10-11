@@ -1,0 +1,21 @@
+{
+  "name": "typing_extensions",
+  "version": "4.16.0",
+  "license_expression": "PSF-2.0",
+  "license_metadata": null,
+  "urls": [
+    "Bug Tracker, https://github.com/python/typing_extensions/issues",
+    "Changes, https://github.com/python/typing_extensions/blob/main/CHANGELOG.md",
+    "Documentation, https://typing-extensions.readthedocs.io/",
+    "Home, https://github.com/python/typing_extensions",
+    "Q & A, https://github.com/python/typing/discussions",
+    "Repository, https://github.com/python/typing_extensions"
+  ],
+  "files": [
+    {
+      "path": "typing-extensions-4.16.0/typing_extensions-4.16.0.dist-info/licenses/LICENSE",
+      "size": 13936,
+      "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf"
+    }
+  ]
+}

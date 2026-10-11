@@ -1,0 +1,16 @@
+{
+  "name": "pywin32-ctypes",
+  "version": "0.2.3",
+  "license_expression": null,
+  "license_metadata": "BSD-3-Clause",
+  "urls": [
+    "Homepage, https://github.com/enthought/pywin32-ctypes"
+  ],
+  "files": [
+    {
+      "path": "pywin32-ctypes-0.2.3/pywin32_ctypes-0.2.3.dist-info/LICENSE.txt",
+      "size": 1644,
+      "sha256": "dfa83b3e2709adfcdb838d9ad55823ca674abb780e60563d9dd9544ccbf785e9"
+    }
+  ]
+}

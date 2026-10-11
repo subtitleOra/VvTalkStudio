@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VvTalk Studio · 语音调教工作台</title>
+  <link rel="stylesheet" href="/style.css">
+  <script defer src="/app.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="#" aria-label="VvTalk Studio 首页"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span>VvTalk <b>Studio</b></span></a>
+    <div class="header-divider"></div>
+    <label class="title-field"><span class="sr-only">文稿名称</span><input id="documentTitle" value="回家的路" maxlength="200" aria-label="文稿名称"></label>
+    <span id="saveState" class="save-state">尚未保存</span>
+    <label class="language-field"><span>语言</span><select id="language" aria-label="文稿语言"><option value="zh">中文</option><option value="ja">日语</option><option value="en">英语</option></select></label>
+    <nav class="header-actions" aria-label="文稿操作"><button id="newButton" class="button quiet">新建</button><button id="openButton" class="button quiet">打开</button><button id="saveButton" class="button outline" title="保存可继续编辑的 JSON 工作台工程">保存工作台</button></nav>
+  </header>
+
+  <main class="workspace">
+    <aside class="sentence-panel" aria-label="句子导航">
+      <div class="panel-heading"><h1>文稿</h1><span id="sectionCount" class="muted">0 句</span></div>
+      <div class="draft-summary"><span id="characterCount">0 字</span><span id="totalDuration">— 秒</span></div>
+      <div id="sectionList" class="section-list" role="list" aria-label="文稿句子"></div>
+      <div class="sentence-bottom"><button id="fullTextButton" class="button outline full-width">编辑全文</button><button id="referenceButton" class="button quiet full-width">导入参考音频 / VSQX</button><div class="local-note"><span class="small-dot"></span>文稿仅在本机处理</div></div>
+    </aside>
+
+    <section class="editor-panel" aria-label="语调编辑">
+      <div class="editor-heading"><div><div class="eyebrow" id="editorEyebrow">文稿编辑</div><h2 id="editorTitle">从一句话开始</h2></div><div class="history-actions"><button id="undoButton" class="icon-button" title="撤销（Ctrl+Z）" aria-label="撤销">↶</button><button id="redoButton" class="icon-button" title="重做（Ctrl+Shift+Z）" aria-label="重做">↷</button></div></div>
+      <section class="text-card" aria-labelledby="textLabel"><div class="card-top"><label id="textLabel" for="textEditor">文本</label><div class="text-meta"><button id="sampleButton" class="button quiet small">填入示例</button><span id="textCount" class="muted">0 字</span></div></div><textarea id="textEditor" rows="3" spellcheck="false" aria-describedby="textHelp" placeholder="输入中文文稿，可用标点和换行分句。"></textarea><div class="text-card-bottom"><span id="textHelp" class="help">标点决定停顿，换行划分段落。</span><button id="analyzeButton" class="button primary">生成语调</button></div></section>
+
+      <section class="curve-card" aria-labelledby="curveLabel"><div class="card-top"><div class="label-with-badge"><h3 id="curveLabel">连续音高</h3><span id="curveState" class="badge">等待生成</span></div><div class="curve-legend"><span></span>语音音高<i class="unvoiced-key" hidden></i><span id="unvoicedLabel" hidden>无声 / 清音</span></div></div><div class="curve-container"><svg id="pitchChart" viewBox="0 0 720 230" role="img" aria-label="连续音高曲线"><text x="360" y="110" text-anchor="middle" class="chart-empty">生成语调后，音高曲线会显示在这里</text></svg></div><div class="curve-bottom"><span id="curveSummary">音高遵循语音声调与句子语气。</span><span id="selectedDuration">— 秒</span></div><div id="referencePlayback" class="reference-playback" hidden><label for="referenceSourceAudio">原始参考录音</label><audio id="referenceSourceAudio" controls preload="none"></audio><span id="sourceAudioStale" class="help" hidden>录音链接已失效，请重新导入原录音。</span></div></section>
+
+      <section class="character-card" aria-labelledby="characterLabel"><div class="card-top"><div><h3 id="characterLabel">逐字调整</h3><span id="characterHelp" class="help">留空使用自动值；读音用带声调数字的拼音。</span></div><button id="resetCharacters" class="button quiet small">重置本句</button></div><div class="character-table-wrap"><table class="character-table"><thead id="characterHead"><tr><th scope="col">字</th><th scope="col">读音</th><th scope="col">时长 <span>ms</span></th><th scope="col">字后停顿 <span>ms</span></th></tr></thead><tbody id="characterRows"><tr><td colspan="4" class="empty-table">生成语调后，可在这里精修每个字。</td></tr></tbody></table></div></section>
+      <div id="warnings" class="warnings" hidden></div>
+    </section>
+
+    <aside class="settings-panel" aria-label="生成与导出设置">
+      <div class="panel-heading"><h2>语调设置</h2><button id="resetSettings" class="button quiet small">重置</button></div>
+      <fieldset id="globalSettings" class="settings-group"><legend class="sr-only">全局语调设置</legend>
+        <label class="setting"><span>语速<span class="unit">倍</span></span><div class="range-row"><input type="range" data-range="rate" min="0.25" max="3" step="0.05" value="1"><input type="number" data-setting="rate" aria-label="语速倍数" min="0.25" max="4" step="0.05" value="1"></div></label>
+        <label class="setting"><span>基准音高<span class="unit">MIDI</span></span><div class="range-row"><input type="range" data-range="base_pitch" min="36" max="84" step="1" value="61"><input type="number" data-setting="base_pitch" aria-label="基准音高 MIDI" min="12" max="108" step="1" value="61"></div></label>
+        <label class="setting"><span>语调幅度<span class="unit">倍</span></span><div class="range-row"><input type="range" data-range="range_scale" min="0" max="3" step="0.05" value="1"><input type="number" data-setting="range_scale" aria-label="语调幅度倍数" min="0" max="4" step="0.05" value="1"></div></label>
+        <div class="setting-pair"><label><span id="syllableDurationLabel">单字时长</span><input type="number" data-setting="syllable_ms" min="80" max="3000" step="10" value="210"><span class="field-unit">ms</span></label><label>平滑长度<input type="number" data-setting="smoothing_ms" min="0" max="500" step="1" value="10"><span class="field-unit">ms</span></label></div>
+        <div class="settings-divider"></div>
+        <div class="setting-pair"><label>逗号停顿<input type="number" data-setting="comma_pause_ms" min="0" max="10000" step="10" value="180"><span class="field-unit">ms</span></label><label>句末停顿<input type="number" data-setting="sentence_pause_ms" min="0" max="10000" step="10" value="420"><span class="field-unit">ms</span></label></div>
+        <div class="setting-pair"><label>段落停顿<input type="number" data-setting="paragraph_pause_ms" min="0" max="10000" step="10" value="700"><span class="field-unit">ms</span></label><label>工程速度<input type="number" data-setting="bpm" min="20" max="400" step="1" value="120"><span class="field-unit">BPM</span></label></div>
+      </fieldset>
+      <details id="sentenceSettings" class="sentence-settings"><summary>本句设置</summary><p class="help">留空继承全局设置。</p><div class="setting-pair"><label>语速倍数<input type="number" data-local="rate" min="0.25" max="4" step="0.05" placeholder="继承"></label><label>基准音高<input type="number" data-local="base_pitch" min="12" max="108" step="1" placeholder="继承"></label></div><label class="standalone-field">句后停顿 <span class="unit">ms</span><input type="number" data-local="pause_after_ms" min="0" max="30000" step="10" placeholder="继承"></label></details>
+      <section class="target-section"><h3>目标引擎</h3><label class="sr-only" for="targetEngine">导出目标引擎</label><select id="targetEngine"><option value="ace">ACE Studio</option><option value="synthv">Synthesizer V Studio 2 Pro</option><option value="vocaloid5">VOCALOID 5</option><option value="vocaloid6">VOCALOID 6</option></select><p id="targetDescription" class="help">导出一个保留连续音高的 ACEP 工程。</p><button id="copySv2Button" class="button outline full-width">复制 SV2 脚本数据</button><button id="installScript" class="button quiet full-width">安装 Synthesizer V 脚本</button></section>
+      <section class="preview-section"><div class="preview-heading"><h3>ACE 试听</h3><span id="aceConnection" class="connection-state"><span></span>检测中</span></div><div class="preview-controls"><label class="sr-only" for="previewScope">试听范围</label><select id="previewScope"><option value="section">当前句</option><option value="all">全文</option></select><button id="previewButton" class="button outline">试听</button></div><p id="previewHelp" class="help">使用 ACE Studio 中的真实歌手合成。</p><audio id="previewAudio" controls preload="none" hidden aria-label="ACE 合成试听"></audio><span id="audioStale" class="audio-stale" hidden>文稿已修改，请重新合成试听。</span></section>
+    </aside>
+  </main>
+
+  <footer class="app-footer"><div class="status-area"><span id="statusDot" class="status-dot"></span><div id="status" role="status" aria-live="polite">正在连接本地工作台…</div></div><div class="footer-actions"><button id="outputFolderButton" class="button quiet" hidden>打开输出位置</button><button id="exportButton" class="button primary export-button">导出引擎工程 <span aria-hidden="true">↗</span></button></div></footer>
+
+  <input id="openFile" type="file" accept=".txt,.json" hidden>
+  <dialog id="referenceDialog"><form id="referenceForm"><div class="dialog-heading"><div><div class="eyebrow">参考导入</div><h2>从声音或工程提取语调</h2></div><button type="button" class="icon-button close-dialog" aria-label="关闭">×</button></div><p class="dialog-intro">选择录音所用语言，再录制示读或上传音频提取音高。录音、文字和逐项标注需对应同一段内容。</p><label class="reference-language-field">参考语言<select id="referenceLanguage" aria-label="参考录音语言"><option value="zh">中文 · 逐字</option><option value="ja">日语 · 逐拍</option><option value="en">英语 · 逐词</option></select></label><p id="referenceUnitHelp" class="help"></p><div class="microphone-section"><div class="microphone-actions"><button id="recordStart" type="button" class="button outline"><span class="record-dot"></span>麦克风录音</button><button id="recordStop" type="button" class="button outline" hidden>停止录音</button><span id="recordStatus" class="help" role="status">最长 180 秒，保存为 PCM WAV。</span></div><audio id="recordPlayback" controls preload="none" hidden></audio></div><label class="file-field">参考录音 <span class="optional">WAV / FLAC / AIFF，可选</span><input id="referenceAudioFile" type="file" accept=".wav,.flac,.aif,.aiff"></label><label class="file-field">对齐文件 / VOCALOID 工程 <span class="optional">TextGrid、CSV、VSQX，可选</span><input id="referenceAlignmentFile" type="file" accept=".TextGrid,.textgrid,.csv,.vsqx"></label><label class="dialog-text-field">对应文字<textarea id="referenceText" rows="3" spellcheck="false" placeholder="输入录音中读出的中文；导入 VSQX 可自动读取歌词。"></textarea></label><label class="alignment-choice"><input id="automaticAlignment" type="checkbox" disabled><span id="automaticAlignmentLabel">自动逐字对齐（正在检测本机资源）</span></label><p id="alignmentHelp" class="help">没有逐字标注时先生成均分草稿，需要逐字复核起止时间。</p><details class="reference-advanced"><summary>音高提取范围</summary><div class="setting-pair"><label>最低频率<input id="fmin" type="number" min="40" max="1000" value="65"><span class="field-unit">Hz</span></label><label>最高频率<input id="fmax" type="number" min="80" max="2000" value="650"><span class="field-unit">Hz</span></label></div></details><p id="referenceError" class="dialog-error" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="button quiet close-dialog">取消</button><button id="referenceSubmit" type="submit" class="button primary">导入并分析</button></div></form></dialog>
+
+  <dialog id="exportDialog"><div class="dialog-heading"><div><div class="eyebrow">导出完成</div><h2>工程已保存到本机</h2></div><button class="icon-button close-dialog" aria-label="关闭">×</button></div><p id="exportFolder" class="output-path"></p><div id="exportFiles" class="export-files"></div><div id="exportWarnings" class="warnings" hidden></div><div class="dialog-actions"><button class="button quiet close-dialog">关闭</button><button id="exportOpenFolder" class="button primary">打开文件夹</button></div></dialog>
+
+  <dialog id="confirmDialog"><div class="dialog-heading"><h2>新建文稿</h2><button class="icon-button close-dialog" aria-label="关闭">×</button></div><p>当前草稿会被新文稿替换。可以先保存，再新建。</p><div class="dialog-actions"><button class="button quiet close-dialog">取消</button><button id="confirmNew" class="button primary">新建文稿</button></div></dialog>
+  <dialog id="languageDialog"><div class="dialog-heading"><h2 id="languageDialogTitle">新建另一语言文稿</h2><button class="icon-button close-dialog" aria-label="关闭">×</button></div><p id="languageDialogHelp" class="dialog-intro">当前内容不会自动按另一语言解释。请先保存当前文稿，再确认新建空文稿。</p><div class="dialog-actions"><button class="button quiet close-dialog">保留当前文稿</button><button id="confirmLanguage" class="button primary">新建空文稿</button></div></dialog>
+  <dialog id="copyDialog"><div class="dialog-heading"><h2>复制到 Synthesizer V</h2><button class="icon-button close-dialog" aria-label="关闭">×</button></div><p class="dialog-intro">复制下方 JSON，在 Studio 2 Pro 的「脚本 → VvTalk Studio → 导入剪贴板语调」中加载。</p><label class="sr-only" for="copyData">SV2 脚本导入数据</label><textarea id="copyData" rows="9" readonly spellcheck="false"></textarea><p id="copyHelp" class="help">当前窗口不允许自动写入剪贴板，可选中后按 Ctrl+C。</p><div class="dialog-actions"><button class="button quiet close-dialog">关闭</button><button id="copyFallback" class="button primary">复制全部</button></div></dialog>
+</body>
+</html>
