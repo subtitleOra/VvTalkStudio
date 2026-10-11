@@ -1,5 +1,5 @@
 # VvTalk Studio
-使用GPT基于https://github.com/GalaxieT/VvTalk项目为参考开发的语调教辅助工具。
+使用GPT基于https://github.com/GalaxieT/VvTalk 项目为参考开发的语调教辅助工具。
 VvTalk Studio 1.1.2 是 Windows 本地语音调教工作台。它支持中文逐字、日语逐拍和英语逐词编辑，将文字语调草稿或参考录音的连续基频转换为 ACE Studio、Synthesizer V Studio 2 Pro 和 VOCALOID 5/6 可使用的工程。每次导出只生成所选引擎的一个文件；工作台编辑信息通过单独的 `.vvtalk.json` 保存。1.1.2 修复了界面外层多余滚动，并保留面板内部滚动与键盘访问。
 
 文字生成使用本地词典与可编辑的节奏、重音和句调规则，不是语音识别，也不保证自然朗读的逐点复现。要还原实际说话的音高，请提供内容已知的参考录音及时间标注。代码独立实现了本工作台，并复用了已有 ACEProsody 模块；运行时不会导入原版 VvTalk 的 Talker、分析器或 VSQX Writer。原版 VvTalk 的 MFA 安装仅作为用户自行提供的外部对齐资源，未随本项目分发。
