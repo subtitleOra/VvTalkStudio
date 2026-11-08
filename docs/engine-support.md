@@ -12,7 +12,7 @@
 
 SVP 使用真实 SV2 保存文件核对过的 v196 结构，每四分音符为 705600000 blick。`NoteGroup.pitchControls` 包含组内 `pos`、绝对 MIDI 基准 `pitch` 与交错的相对 blick / 相对半音 `points`。旧版音分 `pitchDelta` 保持为空，避免双重叠加。遇到清音帧拆分曲线；孤立测量使用 1 blick 的恒值曲线。直接 SVP 的静态解码保持了连续音高，已完成与未执行的宿主检查分别列于 [公开验收概要](验收记录.md)。
 
-可选剪贴板插件使用官方 JavaScript ES5.1 脚本 API。它先验证对象，再建立一个撤销记录并添加独立轨道；通过宿主 `TimeAxis.getBlickFromSeconds` 处理已有变速工程，原速度事件保持不变。导入后须选择支持当前语言的声库。界面安装按钮探测 `%APPDATA%\Dreamtonics\Synthesizer V Studio 2\scripts`，独立 `plugins/install-synthv.cmd` 则允许选择宿主实际脚本目录，同名脚本先备份。
+可选剪贴板插件使用官方 JavaScript ES5.1 脚本 API。它先验证对象，再建立一个撤销记录并添加独立轨道；通过宿主 `TimeAxis.getBlickFromSeconds` 处理已有变速工程，原速度事件保持不变。导入后须选择支持当前语言的声库。界面安装按钮探测 Windows 的 `%APPDATA%\Dreamtonics\Synthesizer V Studio 2\scripts` 或 macOS 的 `~/Library/Application Support/Dreamtonics/Synthesizer V Studio 2/scripts`；独立 `plugins/install-synthv.cmd`（Windows）和 `plugins/install-synthv.command`（macOS）允许选择宿主实际脚本目录，同名脚本先备份。
 
 `Note.setLanguageOverride` 使用 `mandarin`、`japanese`、`english`，SVP 主引用设置相同语言。日语长音先确定母音读音。英文 ARPAbet 覆盖保存在工作台和元数据，SV 的发音仍由自己的词典计算，不把这些符号当作已经兼容的宿主音素。[官方脚本说明](https://resource.dreamtonics.com/scripting/)、[PitchControlCurve](https://resource.dreamtonics.com/scripting/PitchControlCurve.html)、[NoteGroup](https://resource.dreamtonics.com/scripting/NoteGroup.html)、[TimeAxis](https://resource.dreamtonics.com/scripting/TimeAxis.html)、[Note API](https://resource.dreamtonics.com/scripting/Note.html)。
 

@@ -1,6 +1,6 @@
-# Windows 发行文件签名
+# 发行文件签名
 
-当前发布程序未签名。`sign-release.ps1` 为持有正式代码签名证书的发布者提供检查和签名入口，不生成自签名证书，不导入信任根，也不接受或记录 PFX 密码。没有证书时应保留未签名状态，不能把脚本存在当作发行文件已经签名。
+当前发布程序未使用发布者证书签名（macOS 本地构建为 ad-hoc 签名）。Windows 使用 `sign-release.ps1`，macOS 使用 `sign-release-macos.sh`。两个脚本都只为持有正式代码签名证书的发布者提供检查和签名入口；没有证书时应保留未签名状态，不能把脚本存在当作发行文件已经签名。
 
 ## 证书与工具
 
@@ -24,3 +24,23 @@
 确认有效后，重新记录签名前后文件摘要、签名者公开信息和时间戳，再生成发行包及 SHA-256 清单。公开记录中避免包含个人证书存储路径或机器用户名。签名不能替代依赖许可证、同版本完整对应源码、隐私清理和功能验收。
 
 该脚本已做 PowerShell 5.1 语法解析、缺少工具和找不到证书时的安全失败检查，以及 SDK 检测检查。本轮没有正式证书、没有执行真实签名，也没有取得已签名程序的 SmartScreen 信任结果。
+
+## macOS 签名与公证
+
+macOS 发行包使用 `sign-release-macos.sh`。未提供证书时脚本使用 ad-hoc 签名，只适合本机测试；公开发行应传入 Developer ID Application 证书：
+
+```bash
+./sign-release-macos.sh dist/VvTalkStudio.app "Developer ID Application: Your Name (TEAMID)"
+```
+
+脚本会以 hardened runtime、时间戳和 `--deep` 签名整个 `.app`，随后执行 `codesign --verify --deep --strict`。`.app` 采用 onedir 结构，请先完成 `build.sh --web` 打包，不要只签名内部 Mach-O 可执行文件。
+
+公证需要 Apple Developer 账号及已保存的 `notarytool` 凭据配置：
+
+```bash
+xcrun notarytool store-credentials vvtalk-notary \
+  --apple-id 'YOUR_APPLE_ID' --team-id 'YOUR_TEAM_ID' --password 'APP_SPECIFIC_PASSWORD'
+NOTARY_PROFILE=vvtalk-notary ./sign-release-macos.sh dist/VvTalkStudio.app "Developer ID Application: Your Name (TEAMID)"
+```
+
+脚本会创建临时 ZIP、提交公证、等待结果并执行 `xcrun stapler staple`。公证和装订都失败时不能宣称发行包已通过 Gatekeeper；用户仍可右键“打开”或按 [macOS 适配说明](macos.md) 移除 quarantine 属性，但这不应替代正式签名。公开记录中不要包含 Apple ID、团队密码、证书私钥或本机钥匙串路径。

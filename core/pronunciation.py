@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import subprocess
 from functools import lru_cache
@@ -12,14 +11,26 @@ from pathlib import Path
 from pypinyin.constants import PINYIN_DICT
 from pypinyin.contrib.tone_convert import to_normal
 
+import platform_support
 
-ACE_CLI = r"C:\Program Files\ACE Studio\acestudio-cli.exe"
+ACE_CLI = platform_support.ace_cli_path()
 _PINYIN = re.compile(r"^[a-zv]{1,7}[1-5]$")
 _VALID_BASES = frozenset(to_normal(reading, v_to_u=False).lower().replace("ü", "v")
                          for readings in PINYIN_DICT.values() for reading in readings.split(","))
 _PHONE = re.compile(r"^[A-Za-z0-9_+\-]+$")
 ACE_LANGUAGE_NAMES = {"zh": "Chinese", "ja": "Japanese", "en": "English"}
 ACE_LANGUAGE_CODES = {"zh": "CHN", "ja": "JPN", "en": "ENG"}
+# Singer IDs and seed codes verified against projects saved by ACE Studio with Verse23.
+_VSINGER_PRESETS = (("洛天依", 18, 16), ("乐正绫", 1007, 32), ("言和", 1006, 33))
+
+
+def vsinger_ace_voices():
+    return [
+        {"key": f"1:{singer}:{seed}", "id": singer, "ref": f"singer:{singer}", "name": name,
+         "seed_code": seed, "seed_ref": f"seed:{seed}", "model_id": 1, "model_name": "Verse23",
+         "native_language": "Chinese", "supported_languages": ["Chinese", "English", "Japanese"]}
+        for name, singer, seed in _VSINGER_PRESETS
+    ]
 
 
 @lru_cache(maxsize=1)
@@ -52,10 +63,10 @@ def normalize_pinyin_override(value):
 def ace_read(arguments, message):
     """Only read-only CLI commands are used by this module."""
     try:
-        completed = subprocess.run([ACE_CLI, "--json", *arguments], capture_output=True,
+        completed = subprocess.run([str(ACE_CLI), "--json", *arguments], capture_output=True,
                                    text=True, encoding="utf-8", errors="replace",
                                    timeout=15, check=False, shell=False,
-                                   creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                                   creationflags=platform_support.creation_flags())
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError(message) from exc
     if completed.returncode != 0:
@@ -147,6 +158,65 @@ def ace_voice_for_language(language):
             voice.get("seed_ref") != "seed:" + str(voice["seed_code"])):
         raise ValueError(f"缺少 {ACE_LANGUAGE_NAMES[language]} ACE 离线兼容声库信息，请更新完整程序。")
     return dict(voice)
+
+
+def available_ace_voices(language):
+    """Read installed stock voices and their matching owned seeds without modifying ACE."""
+    from languages import normalize_language
+    language = normalize_language(language)
+    language_name = ACE_LANGUAGE_NAMES[language]
+    message = "读取声库失败，请启动 ACE Studio 并启用 External Agent Access。"
+    models = ace_read(["voice", "synth-models"], message).get("models", [])
+    if not isinstance(models, list):
+        raise ValueError("ACE 返回的合成模型列表无效。")
+    voices, seen = [], set()
+    for model in models:
+        if (not isinstance(model, dict) or model.get("timbreOnly") or
+                not isinstance(model.get("supportedLanguages"), list) or
+                language_name not in model["supportedLanguages"] or
+                type(model.get("id")) is not int or not isinstance(model.get("name"), str)):
+            continue
+        seeds = ace_read(["voice", "seeds", "--model", model["name"], "--community", "true"], message).get("seeds", [])
+        sources = ace_read(["sound-source", "list", "--kind", "voice", "--origin", "premade",
+                            "--model", model["name"], "--language", language_name], message).get("soundSources", [])
+        if not isinstance(seeds, list) or not isinstance(sources, list):
+            raise ValueError("ACE 返回的声库列表无效。")
+        for source in sources:
+            if (not isinstance(source, dict) or type(source.get("id")) is not int or
+                    source.get("ref") != f"singer:{source['id']}" or
+                    not isinstance(source.get("name"), str) or not source["name"] or
+                    not isinstance(source.get("supportedLanguages"), list) or
+                    language_name not in source["supportedLanguages"]):
+                continue
+            matches = [seed for seed in seeds if isinstance(seed, dict) and seed.get("name") == source["name"]
+                       and type(seed.get("code")) is int and seed["code"] >= 0
+                       and seed.get("ref") == f"seed:{seed['code']}"]
+            if len(matches) != 1:
+                continue
+            seed = matches[0]
+            key = f"{model['id']}:{source['id']}:{seed['code']}"
+            if key in seen:
+                continue
+            seen.add(key)
+            voices.append({"key": key,
+                           "id": source["id"], "ref": source["ref"], "name": source["name"],
+                           "seed_code": seed["code"], "seed_ref": seed["ref"],
+                           "model_id": model["id"], "model_name": model["name"],
+                           "native_language": source.get("nativeLanguage", ""),
+                           "supported_languages": source["supportedLanguages"]})
+    return sorted(voices, key=lambda voice: (voice["name"].casefold(), voice["model_name"], voice["key"]))
+
+
+def resolve_ace_voice(language, key):
+    if not isinstance(key, str) or not re.fullmatch(r"\d+:\d+:\d+", key):
+        raise ValueError("ACE 声库标识无效，请刷新并重新选择。")
+    for voice in vsinger_ace_voices():
+        if voice["key"] == key:
+            return voice
+    voice = next((voice for voice in available_ace_voices(language) if voice["key"] == key), None)
+    if voice is None:
+        raise ValueError("所选 ACE 声库或模型不可用，请刷新并重新选择。")
+    return voice
 
 
 def inspect_ace_voice_for_language(language):

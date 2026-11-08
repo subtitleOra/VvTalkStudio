@@ -12,6 +12,8 @@ const LANGUAGES = {
 const TARGET_HELP = {ace:"导出一个保留连续音高的 ACEP 工程。",synthv:"导出一个 SVP 工程，在 Studio 2 Pro 中加载。",vocaloid5:"导出一个 VSQX 工程，在 VOCALOID 5 中导入。",vocaloid6:"导出一个 VSQX 工程，在 VOCALOID 6 中导入。"};
 const state = {info:null,draft:{title:"回家的路",text:SAMPLE_TEXT,language:"zh",settings:{...DEFAULT_SETTINGS}},document:null,result:null,originalReference:null,selected:null,fullText:true,reference:false,source:null,stale:true,busy:false,previewBusy:false,revision:0,audioRevision:null,folder:null,saved:false,history:[],historyIndex:-1,historyTimer:null,pendingLanguage:null};
 const recorder = {active:false,pending:false,request:0,stream:null,context:null,processor:null,source:null,gain:null,chunks:[],samples:0,started:0,timer:null,file:null,url:null};
+const IS_MAC = /Mac/i.test(`${navigator.platform || ""} ${navigator.userAgent || ""}`);
+const COPY_SHORTCUT = IS_MAC ? "⌘C" : "Ctrl+C";
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function checkedLanguage(language) {
@@ -465,13 +467,13 @@ async function copySv2() {
   if (!data.data || typeof data.data !== "object" || Array.isArray(data.data)) throw new Error("本地服务没有返回有效的 SV2 脚本数据，请重试。");
   const content=JSON.stringify(data.data,null,2);$("#copyData").value=content;
   try {if(!navigator.clipboard?.writeText)throw new Error("clipboard unavailable");await navigator.clipboard.writeText(content);setStatus("SV2 数据已复制。在 Studio 2 Pro 运行「脚本 → VvTalk Studio → 导入剪贴板语调」。");}
-  catch (_) {$("#copyHelp").textContent="当前窗口不允许自动写入剪贴板，可点击复制全部，或按 Ctrl+C。";$("#copyDialog").showModal();$("#copyData").focus();$("#copyData").select();setStatus("SV2 数据已生成，请在弹窗中复制后运行导入脚本。");}
+  catch (_) {$("#copyHelp").textContent=`当前窗口不允许自动写入剪贴板，可点击复制全部，或按 ${COPY_SHORTCUT}。`;$("#copyDialog").showModal();$("#copyData").focus();$("#copyData").select();setStatus("SV2 数据已生成，请在弹窗中复制后运行导入脚本。");}
 }
 async function copyFallback() {
   const field=$("#copyData");field.focus();field.select();
   let copied=false;try {if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(field.value);copied=true;}} catch (_) {}
   if (!copied) {try {copied=document.execCommand("copy");} catch (_) {}}
-  $("#copyHelp").textContent=copied?"已复制，可以切换到 Synthesizer V 运行导入脚本。":"数据已全选，请按 Ctrl+C 复制。";
+  $("#copyHelp").textContent=copied?"已复制，可以切换到 Synthesizer V 运行导入脚本。":`数据已全选，请按 ${COPY_SHORTCUT} 复制。`;
   if(copied)setStatus("SV2 数据已复制，可以运行 Synthesizer V 导入脚本。");
 }
 async function preview() {
@@ -584,6 +586,9 @@ async function initialize() {
   let restored=false,restoreError=null;
   try { const raw=localStorage.getItem("vvtalk-studio-draft-v1"); if (raw) { const draft=JSON.parse(raw); if (draft.draft && typeof draft.draft.text==="string" && typeof draft.draft.title==="string") { const compact=compactDocument(draft.draft),reference=Boolean(draft.reference && draft.result?.curve); if(reference)validateResultLanguage(draft.result,compact.language); state.draft=compact; state.selected=draft.selected || null; state.fullText=draft.fullText!==false; state.reference=reference; state.result=state.reference?draft.result:null; state.originalReference=copyResult(state.result); state.source=draft.source ? {...draft.source,audio_url:null} : null; state.stale=!state.reference; restored=true; } } } catch (error) {restoreError=error.message;try {localStorage.setItem("vvtalk-studio-draft-recovery",localStorage.getItem("vvtalk-studio-draft-v1"));}catch(_){} }
   checkpoint(); render();
+  $("#undoButton").title = `撤销（${IS_MAC ? "⌘Z" : "Ctrl+Z"}）`;
+  $("#redoButton").title = `重做（${IS_MAC ? "⇧⌘Z" : "Ctrl+Shift+Z"}）`;
+  $("#copyHelp").textContent = `当前窗口不允许自动写入剪贴板，可选中后按 ${COPY_SHORTCUT}。`;
   try {
     state.info=await api("/api/info");
     const ace=state.info.ace || {}; $("#aceConnection").classList.toggle("connected",Boolean(ace.connected)); $("#aceConnection").replaceChildren(); const dot=document.createElement("span"); $("#aceConnection").append(dot,document.createTextNode(ace.connected?"已连接":"未连接"));

@@ -360,7 +360,7 @@ def write_vsqx(result, path):
     return Path(path)
 
 
-def export_project(result: dict, document: dict | None, destination: Path, target: str, template: Path) -> dict:
+def export_project(result: dict, document: dict | None, destination: Path, target: str, template: Path, *, ace_voice=None) -> dict:
     if target not in ("synthv", "ace", "vocaloid5", "vocaloid6", "all"):
         raise ValueError("请选择 Synthesizer V、ACE Studio、VOCALOID 5/6 或全部。")
     result = validate_result(result)
@@ -387,16 +387,16 @@ def export_project(result: dict, document: dict | None, destination: Path, targe
         path = destination / "语音调教.acep"
         try:
             if document is not None:
-                build_long_acep(document, template, path)
+                build_long_acep(document, template, path, voice=ace_voice)
             else:
-                build_acep(result, template, path)
+                build_acep(result, template, path, voice=ace_voice)
         except ValueError as exc:
             if target != "all":
                 raise
             warnings.append("ACE Studio 未导出：" + str(exc) + " 其他已列出的目标文件已生成。")
         else:
             record(path, "ACE Studio 原生工程", "acep")
-            warnings.append(f"{language_name} ACEP 使用分别校验的 stock singer ID 与可用 seed code，默认声库来自离线缓存；导入后请复核实际发音与本机声库状态。")
+            warnings.append(f"{language_name} ACEP 使用{'所选声库' if ace_voice else '离线缓存中的默认声库'}；导入后请复核实际发音与本机声库状态。")
     if result["language"] == "en" and target != "ace" and any(
             note.get("pronunciation_override") for note in result["notes"]):
         warnings.append("英语 ARPAbet 读音覆盖保留在 JSON/脚本元数据中；SV 与 VOCALOID 使用原词及各自发音词典，音素符号不能直接跨宿主通用，请在宿主复核该覆盖。")

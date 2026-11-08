@@ -25,21 +25,21 @@ from languages import normalize_language, normalize_pronunciation_override, text
 from workbench import build_document, flatten_document
 from import_vsqx import read_vsqx
 from adapters import export_project, install_synthv_script, synthv_payload
+from pronunciation import available_ace_voices, resolve_ace_voice
 from alignment import detect_alignment, align_audio
 import ace_render
 import parselmouth
+import platform_support
 from praatio import textgrid
 
 VERSION = '1.1.2'
-DATA = Path(os.environ.get('VVTALK_DATA_DIR', str(Path(os.environ.get('USERPROFILE', Path.home())) / 'AppData' / 'Local' / 'VvTalkStudio'))).resolve()
+DATA = platform_support.data_dir().resolve()
 OUTPUTS = DATA / 'outputs'
 UPLOADS = DATA / 'uploads'
 TEMPLATE = ROOT / 'templates' / 'speech_template.acep'
-SV_SCRIPT_DIR = Path.home() / 'AppData/Roaming/Dreamtonics/Synthesizer V Studio 2/scripts'
+SV_SCRIPT_DIR = platform_support.synthv_scripts_dir()
 MAX_BODY = 92 * 1024 * 1024
-HOST_PATHS = {'ace': Path(r'C:\Program Files\ACE Studio\ACE Studio.exe'),
-              'synthv': Path(r'C:\Program Files\Synthesizer V Studio 2 Pro\synthv-studio.exe'),
-              'vocaloid6': Path(r'C:\Program Files\VOCALOID6\Editor\VOCALOID6.exe')}
+HOST_PATHS = platform_support.host_paths()
 FILES: dict[str, Path] = {}
 FILE_LOCK = threading.Lock()
 DATA_LOCK = threading.Lock()
@@ -177,8 +177,11 @@ def save_document(payload):
     document, result = snapshot(payload)
     folder = directory()
     path = folder / '语调工程.vvtalk.json'
-    write_json(path, {'format': 'vvtalk-studio', 'version': 1, 'title': payload.get('title') or (document or {}).get('title', '语调工程'),
-                      'document': document, 'result': result})
+    saved = {'format': 'vvtalk-studio', 'version': 1, 'title': payload.get('title') or (document or {}).get('title', '语调工程'),
+             'document': document, 'result': result}
+    if payload.get('ace_voice'):
+        saved['ace_voice'] = validate_ace_voice_key(payload['ace_voice'])
+    write_json(path, saved)
     return {'path': str(path), 'folder': str(folder), **public_file(path)}
 
 
@@ -188,7 +191,8 @@ def do_export(payload):
     if target not in {'ace', 'synthv', 'vocaloid5', 'vocaloid6'}:
         raise ValueError('请选择支持的目标引擎。')
     folder = directory()
-    exported = export_project(result, document, folder, target, TEMPLATE)
+    voice = resolve_ace_voice(result['language'], payload['ace_voice']) if target == 'ace' and payload.get('ace_voice') else None
+    exported = export_project(result, document, folder, target, TEMPLATE, ace_voice=voice)
     warnings = list(dict.fromkeys(result.get('warnings', []) + exported.get('warnings', [])))
     files = [public_file(p) for p in sorted(folder.rglob('*')) if p.is_file()]
     if len(files) != 1:
@@ -211,6 +215,14 @@ def owned_upload(ident):
 
 
 def upload(payload):
+    try:
+        raw = base64.b64decode(payload.get('data', ''), validate=True)
+    except (ValueError, TypeError) as error:
+        raise ValueError('上传数据无效。') from error
+    return ingest_upload(payload, raw)
+
+
+def ingest_upload(payload, raw):
     initialize()
     name = str(payload.get('name', ''))
     extension = Path(name).suffix.lower()
@@ -218,10 +230,6 @@ def upload(payload):
     allowed = {'audio': {'.wav', '.flac', '.aif', '.aiff'}, 'alignment': {'.csv', '.textgrid'}, 'vsqx': {'.vsqx'}}
     if kind not in allowed or extension not in allowed[kind]:
         raise ValueError('参考音频请选择 WAV/FLAC/AIFF；标注请选择 CSV/TextGrid；工程请选择 VSQX4。')
-    try:
-        raw = base64.b64decode(payload.get('data', ''), validate=True)
-    except (ValueError, TypeError) as error:
-        raise ValueError('上传数据无效。') from error
     if not 0 < len(raw) <= 64 * 1024 * 1024:
         raise ValueError('上传文件需大于零，且不超过 64 MB。')
     ident = uuid.uuid4().hex + extension
@@ -320,25 +328,34 @@ def info():
         ace = {'connected': True, 'project': state}
     except ValueError as error:
         ace = {'connected': False, 'message': str(error)}
-    hosts = {key: {'installed': path.is_file(), 'path': str(path)} for key, path in HOST_PATHS.items()}
+    hosts = {key: {'installed': platform_support.installed(path), 'path': str(path)}
+             for key, path in HOST_PATHS.items()}
     return {'version': VERSION, 'pid': os.getpid(), 'targets': ['synthv', 'ace', 'vocaloid5', 'vocaloid6'], 'ace': ace,
             'hosts': hosts, 'languages': ['zh', 'ja', 'en'], 'alignment': detect_alignment(),
             'alignment_by_language': {language: detect_alignment(language) for language in ('zh', 'ja', 'en')},
-            'data_dir': str(DATA), 'plugins_dir': str(ROOT / 'plugins')}
+            'data_dir': str(DATA), 'plugins_dir': str(ROOT / 'plugins'), 'platform': sys.platform}
 
 
-def preview(payload):
+def validate_ace_voice_key(key):
+    if not isinstance(key, str) or not re.fullmatch(r'\d+:\d+:\d+', key):
+        raise ValueError('ACE 声库标识无效，请刷新并重新选择。')
+    return key
+
+
+def preview(payload, *, folder=None, expected_project=None, render_timeout=None):
     document, result = snapshot(payload)
     if document and payload.get('section_id'):
         result = validate_result(flatten_document(document, payload['section_id']))
         document = None
-    folder = directory()
-    export_project(result, document, folder, 'ace', TEMPLATE)
+    folder = folder if folder is not None else directory()
+    voice = resolve_ace_voice(result['language'], payload['ace_voice']) if payload.get('ace_voice') else None
+    export_project(result, document, folder, 'ace', TEMPLATE, ace_voice=voice)
     candidates = list(folder.rglob('*.acep'))
     if len(candidates) != 1:
         raise ValueError('未生成有效的 ACE 工程。')
     return ace_render.start_render({'duration': result['duration']},
-                                   {'directory': str(folder), 'files': {'acep': str(candidates[0])}})
+                                   {'directory': str(folder), 'files': {'acep': str(candidates[0])}},
+                                   expected_project=expected_project, render_timeout=render_timeout)
 
 
 def public_job(ident):
@@ -354,8 +371,7 @@ def open_folder(folder):
     path = Path(str(folder)).resolve()
     if not path.is_relative_to(DATA) or not path.is_dir():
         raise ValueError('只能打开本工具保存的输出目录。')
-    if os.name == 'nt':
-        os.startfile(str(path))
+    platform_support.open_path(path)
     return {'success': True, 'folder': str(path)}
 
 

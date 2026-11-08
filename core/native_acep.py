@@ -266,11 +266,11 @@ def _build_pattern(result, pattern_template, tick_rate, name=None, note_limit=10
     return pattern
 
 
-def configure_ace_voice(track, language):
+def configure_ace_voice(track, language, voice=None):
     """Return a derivative track with a verified stock singer and owned seed recipe."""
     language = normalize_language(language)
     track = copy.deepcopy(track)
-    voice = ace_voice_for_language(language)
+    voice = voice if voice is not None else ace_voice_for_language(language)
     carriers = track.get("singers", [])
     if not carriers or not carriers[0].get("singer", {}).get("composition"):
         raise ValueError("ACE 模板缺少可替换的原生声库配置。")
@@ -288,9 +288,9 @@ def configure_ace_voice(track, language):
     return track
 
 
-def _save_patterns(document, track_template, patterns, bpm, template_path, dest_path, language="zh"):
+def _save_patterns(document, track_template, patterns, bpm, template_path, dest_path, language="zh", voice=None):
     language = normalize_language(language)
-    track = configure_ace_voice(track_template, language)
+    track = configure_ace_voice(track_template, language, voice)
     track.update(uuid="{" + str(uuid.uuid4()) + "}", name=_LANGUAGE_NAMES[language] + "语调", mute=False, solo=False,
                  record=False, listen=False, language=ACE_LANGUAGE_CODES[language], patterns=patterns)
     duration_ticks = math.ceil(max(pattern["pos"] + pattern["dur"] for pattern in patterns))
@@ -304,17 +304,17 @@ def _save_patterns(document, track_template, patterns, bpm, template_path, dest_
     return write_acep(document, template_path, dest_path)
 
 
-def build_acep(result, template_path, dest_path) -> Path:
+def build_acep(result, template_path, dest_path, voice=None) -> Path:
     """Build a vocal clip with language-aware notes and absolute pitch anchors."""
     language = normalize_language(result.get("language"))
     document = read_acep(template_path)
     bpm = _finite(result["bpm"], "BPM", 20, 400)
     track, pattern_template = _vocal_template(document)
     pattern = _build_pattern(result, pattern_template, bpm * 480 / 60)
-    return _save_patterns(document, track, [pattern], bpm, template_path, dest_path, language)
+    return _save_patterns(document, track, [pattern], bpm, template_path, dest_path, language, voice)
 
 
-def build_long_acep(document, template_path, dest_path) -> Path:
+def build_long_acep(document, template_path, dest_path, voice=None) -> Path:
     """Place local section results on one vocal track without global clip limits."""
     sections = document.get("sections", [])
     if not isinstance(sections, list) or not sections:
@@ -342,4 +342,4 @@ def build_long_acep(document, template_path, dest_path) -> Path:
         pattern["pos"] = float(round(offset * tick_rate))
         patterns.append(pattern)
         previous_end = offset + duration
-    return _save_patterns(project, track, patterns, bpm, template_path, dest_path, language)
+    return _save_patterns(project, track, patterns, bpm, template_path, dest_path, language, voice)

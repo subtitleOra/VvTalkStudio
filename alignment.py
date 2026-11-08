@@ -16,22 +16,58 @@ from praatio import textgrid
 from pypinyin import Style, lazy_pinyin
 from languages import normalize_language, text_units, apply_unit_overrides
 
+import platform_support
+
 _HAN = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 _MAX_SECONDS = 180
 _MAX_CHARACTERS = 2000
+
+
+def _mfa_launcher(environment):
+    """Resolve a conda environment created on Windows, macOS, or Linux.
+
+    VvTalk's original installer is Windows-only and ships ``python.exe`` plus
+    ``Scripts/mfa-script.py``. A macOS or Linux environment instead provides
+    ``bin/python`` and either ``bin/mfa-script.py`` or the ``bin/mfa`` console
+    script. ``VVTALK_MFA_PYTHON`` and ``VVTALK_MFA_SCRIPT`` allow pointing at
+    any existing MFA installation without copying it into the project.
+    """
+    override_python = os.environ.get("VVTALK_MFA_PYTHON")
+    override_script = os.environ.get("VVTALK_MFA_SCRIPT")
+    if override_python:
+        python = Path(override_python).expanduser()
+    else:
+        candidates = [environment / "bin/python", environment / "python.exe"]
+        python = next((path for path in candidates if path.is_file()),
+                      environment / ("python.exe" if os.name == "nt" else "bin/python"))
+    if override_script:
+        script = Path(override_script).expanduser()
+    else:
+        candidates = [environment / "bin/mfa-script.py", environment / "Scripts/mfa-script.py",
+                      environment / "bin/mfa", environment / "Scripts/mfa.exe"]
+        script = next((path for path in candidates if path.is_file()),
+                      environment / ("Scripts/mfa-script.py" if os.name == "nt" else "bin/mfa"))
+    # pip console scripts are executable on POSIX; Python helper files are not.
+    command = [str(python), str(script)] if script.suffix == ".py" or script.name.startswith("mfa-script") else [str(script)]
+    return python, script, command
 
 
 def detect_alignment(language='zh'):
     language = normalize_language(language)
     source = Path(os.environ.get("VVTALK_SOURCE", str(Path.home() / "Documents/Vocaloid/VvTalk_1.0.1"))).expanduser().resolve()
     environment = source / "misc/src/MiniConda/envs/vvTalkEnv"
-    paths = {"python": environment / "python.exe", "script": environment / "Scripts/mfa-script.py",
+    python, script, command = _mfa_launcher(environment)
+    paths = {"python": python, "script": script,
              "dictionary": source / "misc/mfa/mfa_model_v20.dict", "model": source / "misc/mfa/mandarin_mfa.zip"}
     if language != 'zh':
         prefix = 'VVTALK_MFA_' + language.upper()
         paths['dictionary'] = Path(os.environ.get(prefix + '_DICTIONARY', str(source / 'misc/mfa' / (language + '.dict')))).expanduser().resolve()
         paths['model'] = Path(os.environ.get(prefix + '_MODEL', str(source / 'misc/mfa' / (language + '.zip')))).expanduser().resolve()
-    missing = [name for name, path in paths.items() if not path.is_file()]
+    else:
+        paths['dictionary'] = Path(os.environ.get('VVTALK_MFA_DICTIONARY', str(paths['dictionary']))).expanduser().resolve()
+        paths['model'] = Path(os.environ.get('VVTALK_MFA_MODEL', str(paths['model']))).expanduser().resolve()
+    required = ['dictionary', 'model'] + (['python', 'script'] if len(command) > 1 else ['script'])
+    missing = [name for name in required if not paths[name].is_file()]
     if not missing:
         try:
             with zipfile.ZipFile(paths["model"]) as archive:
@@ -41,11 +77,12 @@ def detect_alignment(language='zh'):
             missing.append("model-archive")
     names = {'zh': '普通话', 'ja': '日语逐拍', 'en': '英语逐词'}
     message = (f"发现本机 MFA 与{names[language]}资源；自动对齐将在独立工作目录运行。" if not missing else
-               "未找到完整的 VvTalk MFA 安装；请用 VVTALK_SOURCE 指向已有 VvTalk_1.0.1 目录，或上传逐字 CSV/TextGrid。")
+               "未找到完整的 VvTalk MFA 安装；请用 VVTALK_SOURCE 指向已有 VvTalk_1.0.1 目录，"
+               "或用 VVTALK_MFA_PYTHON/VVTALK_MFA_SCRIPT 指向本机 MFA 环境，或上传逐字 CSV/TextGrid。")
     if missing and language != 'zh':
         message = f"未配置{names[language]} MFA 资源；请上传{'逐拍' if language == 'ja' else '逐词'} CSV/TextGrid，或明确选择均分草稿。"
     return {"available": not missing, "language": language, "source": str(source), "environment": str(environment),
-            **{key: str(value) for key, value in paths.items()}, "missing": missing,
+            **{key: str(value) for key, value in paths.items()}, "command": command, "missing": missing,
             "method": "mfa-local", "message": message}
 
 
@@ -138,17 +175,27 @@ def align_audio(audio: Path, text: str, workdir: Path, language='zh', word_readi
     (corpus / "speech.lab").write_text(" ".join(tokens), encoding="utf-8")
     environment = Path(configuration["environment"])
     child_environment = dict(os.environ)
-    dll_paths = [environment, environment / "Library/bin", environment / "Library/usr/bin", environment / "Scripts"]
+    # Keep Windows conda DLL folders and POSIX bin/lib layouts on PATH; either
+    # set is harmless when it does not exist.
+    dll_paths = [environment, environment / "bin", environment / "Library/bin",
+                 environment / "Library/usr/bin", environment / "Scripts", environment / "lib"]
     child_environment["PATH"] = os.pathsep.join(map(str, dll_paths)) + os.pathsep + child_environment.get("PATH", "")
     child_environment.update(MFA_ROOT_DIR=str(data), PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
-    arguments = [configuration["python"], configuration["script"], "align", str(corpus), configuration["dictionary"],
+    if os.name != "nt":
+        # Conda environments carry their runtime libraries outside the loader's
+        # default search path on macOS.
+        child_environment["DYLD_FALLBACK_LIBRARY_PATH"] = os.pathsep.join(
+            [str(environment / "lib")] + ([child_environment["DYLD_FALLBACK_LIBRARY_PATH"]]
+                                          if child_environment.get("DYLD_FALLBACK_LIBRARY_PATH") else []))
+    launcher = configuration.get("command") or [configuration["python"], configuration["script"]]
+    arguments = [*launcher, "align", str(corpus), configuration["dictionary"],
                  configuration["model"], str(output), "-t", str(temporary), "--disable_mp", "-j", "1"]
     log_path = job / "mfa.log"
     try:
         with log_path.open("w", encoding="utf-8") as stream:
             completed = subprocess.run(arguments, cwd=job, env=child_environment, stdout=stream, stderr=subprocess.STDOUT,
                                        timeout=240, shell=False, check=False,
-                                       creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                                       creationflags=platform_support.creation_flags())
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ValueError(f"MFA 自动字界未完成；请上传逐字 CSV/TextGrid。诊断日志：{log_path}") from error
     if completed.returncode != 0:

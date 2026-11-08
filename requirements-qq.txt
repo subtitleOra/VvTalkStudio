@@ -1,0 +1,3 @@
+# Optional dependencies for the source-mode QQ group bot.
+qqbot-agent-sdk==1.2.2
+pilk==0.2.4

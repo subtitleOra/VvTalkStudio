@@ -90,6 +90,23 @@ class ReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "不一致"):
             alignment.read_word_intervals(path, ["你", "好"], ["ni2", "hao3"], 1.9)
 
+    def test_mfa_launcher_supports_posix_console_script_and_windows_layout(self):
+        posix = self.folder / "posix-env"
+        (posix / "bin").mkdir(parents=True)
+        (posix / "bin/python").write_text("", encoding="utf-8")
+        (posix / "bin/mfa").write_text("", encoding="utf-8")
+        python, script, command = alignment._mfa_launcher(posix)
+        self.assertEqual(python, posix / "bin/python")
+        self.assertEqual(script, posix / "bin/mfa")
+        self.assertEqual(command, [str(posix / "bin/mfa")])
+
+        windows = self.folder / "windows-env"
+        (windows / "Scripts").mkdir(parents=True)
+        (windows / "python.exe").write_text("", encoding="utf-8")
+        (windows / "Scripts/mfa-script.py").write_text("", encoding="utf-8")
+        python, script, command = alignment._mfa_launcher(windows)
+        self.assertEqual(command, [str(windows / "python.exe"), str(windows / "Scripts/mfa-script.py")])
+
     def test_mfa_isolated_child_environment_and_does_not_modify_original(self):
         dictionary = self.folder / "dictionary.dict"
         dictionary.write_text("ni3 1.0 n i\nhao3 1.0 h ao\n", encoding="utf-8")
@@ -101,7 +118,7 @@ class ReferenceTests(unittest.TestCase):
         def process(arguments, **kwargs):
             self.assertEqual(arguments[2], "align")
             self.assertEqual(arguments[-3:], ["--disable_mp", "-j", "1"])
-            self.assertTrue(Path(kwargs["env"]["MFA_ROOT_DIR"]).is_relative_to(self.folder / "work"))
+            self.assertTrue(Path(kwargs["env"]["MFA_ROOT_DIR"]).is_relative_to((self.folder / "work").resolve()))
             self.assertEqual((Path(arguments[3]) / "speech.lab").read_text(encoding="utf-8"), "ni3 hao3")
             grid_file(Path(arguments[6]) / "speech.TextGrid")
             return subprocess.CompletedProcess(arguments, 0)

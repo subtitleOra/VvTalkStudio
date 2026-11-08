@@ -105,7 +105,7 @@ with app.instance_lock(server, int(sys.argv[2])) as owned:
             self.assertEqual(original.calls, ["/api/info", "/api/info"])
             self.assert_guard_released(original.server_port)
 
-    @unittest.skipUnless(os.name == "nt", "Windows msvcrt instance locking")
+    @unittest.skipUnless(os.name in ("nt", "posix"), "Windows msvcrt / POSIX flock instance locking")
     def test_instance_lock_excludes_another_process_and_releases_after_exception(self):
         with socket.socket() as reservation:
             reservation.bind(("127.0.0.1", 0))

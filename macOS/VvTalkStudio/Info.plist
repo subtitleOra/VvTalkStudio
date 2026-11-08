@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>VvTalk Studio</string>
+    <key>CFBundleDisplayName</key>
+    <string>VvTalk Studio</string>
+    <key>CFBundleIconFile</key>
+    <string>VvTalkStudio.icns</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.music</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>GPL-3.0-or-later</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>录制参考示读音频，用于提取语调曲线。也可直接导入音频文件。</string>
+</dict>
+</plist>

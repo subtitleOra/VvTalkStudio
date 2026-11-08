@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import sys
 import threading
 import webbrowser
@@ -12,28 +13,17 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import platform_support
+
 
 @contextmanager
 def instance_lock(server, port):
     handle = None
-    owned = True
-    if os.name == 'nt' and port:
-        import msvcrt
+    if port:
         server.initialize()
-        handle = (server.DATA / f'instance-{port}.lock').open('a+b')
-        handle.seek(0, 2)
-        if not handle.tell():
-            handle.write(b'\0')
-            handle.flush()
-        handle.seek(0)
-        try:
-            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-        except OSError:
-            owned = False
-            handle.close()
-            handle = None
+        handle = platform_support.try_file_lock(server.DATA / f'instance-{port}.lock')
     try:
-        yield owned
+        yield not port or handle is not None
     finally:
         if handle is not None:
             handle.close()
@@ -119,14 +109,14 @@ def run_app(args, server):
                 profile.mkdir(parents=True, exist_ok=True)
                 webview.create_window('VvTalk Studio · 语音调教', url, width=1320, height=900,
                                       min_size=(980, 680), text_select=True)
-                webview.start(gui='edgechromium', debug=False,
-                              private_mode=False, storage_path=str(profile))
+                webview.start(debug=False, **platform_support.webview_start_options(profile))
                 return 0
             except Exception as error:
                 with (server.DATA / 'desktop.log').open('a', encoding='utf-8') as log:
                     log.write(str(error) + '\n')
         webbrowser.open(url)
-        # Browser mode ends with Ctrl+C / Stop-VvTalk.cmd; desktop mode ends with its window.
+        # Browser mode ends with Ctrl+C or the packaged Stop-VvTalk script; desktop mode
+        # ends with its window.
         thread.join()
     finally:
         httpd.shutdown()
@@ -139,10 +129,17 @@ if __name__ == '__main__':
         raise SystemExit(main())
     except Exception as error:
         import traceback
-        root = Path(os.environ.get('USERPROFILE', Path.home())) / 'AppData' / 'Local' / 'VvTalkStudio'
+        root = platform_support.data_dir()
         root.mkdir(parents=True, exist_ok=True)
-        (root / 'startup-error.log').write_text(traceback.format_exc(), encoding='utf-8')
+        log = root / 'startup-error.log'
+        log.write_text(traceback.format_exc(), encoding='utf-8')
         if os.name == 'nt' and sys.stdout is None and not any(a in sys.argv for a in ('--serve', '--self-test')):
             import ctypes
-            ctypes.windll.user32.MessageBoxW(0, f'启动失败：{error}\n日志：{root / "startup-error.log"}', 'VvTalk Studio', 16)
+            ctypes.windll.user32.MessageBoxW(0, f'启动失败：{error}\n日志：{log}', 'VvTalk Studio', 16)
+        elif platform_support.IS_MACOS and sys.stdout is None and not any(a in sys.argv for a in ('--serve', '--self-test')):
+            # A .app launched from Finder has no console; surface the failure with
+            # the system alert so the user knows where the log is.
+            message = f'启动失败：{error} 日志：{log}'
+            subprocess.run(['osascript', '-e', 'display alert "VvTalk Studio" message ' + json.dumps(message)],
+                           check=False)
         raise

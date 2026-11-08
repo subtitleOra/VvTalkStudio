@@ -8,6 +8,6 @@
 
 六种浏览器视口完成滚动、键盘与对话框检查，冻结程序通过自检并确认版本与打包 CSS。原生窗口已确认启动及可访问性节点，该轮没有完成其截图视觉和几何验收。已有中文 ACE 与 SV2 脚本的历史真实宿主回读；新版直接 SVP、日英试听以及 VOCALOID 5/6 的实际宿主合成仍有验证边界，详见 [公开验收概要](验收记录.md)。
 
-Windows x64 便携包包含 Python 运行环境，桌面模式需要 WebView2 Runtime，也可使用 `--browser`。商业引擎、对应语言声库及授权须自行安装；自动对齐使用外部本地 MFA 资源，未捆绑模型。程序未进行代码签名。请从 [本仓库 Releases](https://github.com/subtitleOra/VvTalkStudio/releases) 下载并核对该次附件的 SHA-256 清单。
+Windows x64 与 macOS 便携包都包含 Python 运行环境。Windows 桌面模式需要 WebView2 Runtime，macOS 桌面模式使用系统 WKWebView；两者也可使用 `--browser`。商业引擎、对应语言声库及授权须自行安装；自动对齐使用外部本地 MFA 资源，未捆绑模型。程序未进行代码签名。请从 [本仓库 Releases](https://github.com/subtitleOra/VvTalkStudio/releases) 下载并核对该次附件的 SHA-256 清单。
 
-发行 EXE 必须与同版本完整对应源码、构建文件、许可文本及所需第三方源码包一并提供。应用授权为 GPL v3 或更新版本，第三方数据和模板来源以 [第三方通知](THIRD_PARTY_NOTICES.md) 为准。具体安装和源码构建步骤见 [README](../README.md)。
+发行程序必须与同版本完整对应源码、构建文件、许可文本及所需第三方源码包一并提供。macOS 的 `.app` 使用 onedir 打包，便于 `codesign` 封存与 `ditto` 保留包结构；签名说明见 [代码签名说明](code-signing.md)。应用授权为 GPL v3 或更新版本，第三方数据和模板来源以 [第三方通知](THIRD_PARTY_NOTICES.md) 为准。具体安装和源码构建步骤见 [README](../README.md) 与 [macOS 适配说明](macos.md)。

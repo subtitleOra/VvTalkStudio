@@ -1,6 +1,6 @@
 # 第三方软件与分发声明
 
-本记录针对 2026-10-11 在本项目 `.venv` 中实际安装的 CPython 3.12.10、29 个 Python 分发包及 pywebview 所带的 Microsoft WebView2 SDK 辅助库。版本、原始许可证文件、来源 URL、文件大小与 SHA-256 保存在 [licenses/inventory.json](licenses/inventory.json)。许可证正文按原文件复制，包含安装包中的子组件许可；下面的简写便于查阅，不替代这些正文。
+本记录针对 2026-10-11 在本项目 Windows `.venv` 中实际安装的 CPython 3.12.10、29 个 Python 分发包及 pywebview 所带的 Microsoft WebView2 SDK 辅助库。版本、原始许可证文件、来源 URL、文件大小与 SHA-256 保存在 [licenses/inventory.json](licenses/inventory.json)。macOS 构建额外使用 pyobjc 13.0 与 macholib 1.16.4，见下文“macOS 额外依赖”。许可证正文按原文件复制，包含安装包中的子组件许可；下面的简写便于查阅，不替代这些正文。
 
 VvTalk Studio 的独立实现及复用的用户自编 ACEProsody 代码按 GPL-3.0-or-later 交付，项目根目录的 `LICENSE` 保存完整 GPLv3 正文，`LICENSE-NOTICE.md` 保存 GPLv3-or-later 授权通知。本交付随附可编辑源码、构建文件和已知 GPL 依赖的对应源码。再分发时应保留上述材料、版权声明与第三方许可证；改变本项目或重新打包时，应同步提供实际版本的对应源码和构建信息。PyInstaller 的打包例外不改变 Praat-Parselmouth 或本项目代码的许可条件，不能仅凭“能打包成 EXE”认定其可纳入任意闭源商业产品。
 
@@ -8,7 +8,7 @@ VvTalk Studio 的独立实现及复用的用户自编 ACEProsody 代码按 GPL-3
 
 调教思路参考 [GalaxieT/VvTalk](https://github.com/GalaxieT/VvTalk)，包括中文读音、逐字时序与连续语调的组织方式。上游 [LICENSE](https://raw.githubusercontent.com/GalaxieT/VvTalk/master/LICENSE) 明确规定 CC BY-NC-SA 4.0，并限制其代码及派生代码的商业使用；本交付保存了一份 [参考许可证](licenses/references/VvTalk-upstream-LICENSE.txt) 用于说明来源。
 
-当前工具没有复制或修改 VvTalk 源码，没有把其 CC BY-NC-SA 代码改标为 GPL。它独立实现工作台、调教与适配器，复用用户已有 ACEProsody 的自编工程编解码和语调代码。自动逐字对齐是对本机原 VvTalk 资源的外部调用：发行包不含 VvTalk 的 MiniConda 环境、MFA 声学模型、发音字典或任何商业声库。它们的许可与使用条件应从用户已有安装来源核对，不能从本程序的 GPL 授权推导。SV2、ACE Studio、VOCALOID、声库、Microsoft WebView2 浏览器运行时和系统 .NET 也由用户自行安装并按各自条件使用。
+当前工具没有复制或修改 VvTalk 源码，没有把其 CC BY-NC-SA 代码改标为 GPL。它独立实现工作台、调教与适配器，复用用户已有 ACEProsody 的自编工程编解码和语调代码。自动逐字对齐是对本机原 VvTalk 资源的外部调用：发行包不含 VvTalk 的 MiniConda 环境、MFA 声学模型、发音字典或任何商业声库。它们的许可与使用条件应从用户已有安装来源核对，不能从本程序的 GPL 授权推导。SV2、ACE Studio、VOCALOID、声库以及 Windows 的 Microsoft WebView2 浏览器运行时和系统 .NET 由用户自行安装并按各自条件使用；macOS 使用系统自带的 WKWebView。
 
 ## 公开源码与中性格式模板
 
@@ -49,17 +49,28 @@ VvTalk Studio 的独立实现及复用的用户自编 ACEProsody 代码按 GPL-3
 | altgraph 0.17.5 | MIT | PyInstaller 构建依赖；[altgraph](https://github.com/ronaldoussoren/altgraph) |
 | pefile 2024.8.26 | MIT | PyInstaller Windows 构建依赖；[pefile](https://github.com/erocarrera/pefile) |
 | pywin32-ctypes 0.2.3 | BSD-3-Clause | PyInstaller Windows 构建依赖；[pywin32-ctypes](https://github.com/enthought/pywin32-ctypes) |
+| pyobjc-core 13.0、pyobjc-framework-{Cocoa,Quartz,Security,UniformTypeIdentifiers,WebKit} 13.0 | MIT；正文 [pyobjc LICENSE](licenses/pyobjc-13.0/LICENSE.txt) | macOS WKWebView 与系统桥接；[pyobjc](https://github.com/ronaldoussoren/pyobjc) |
+| macholib 1.16.4 | MIT；正文 [macholib LICENSE](licenses/macholib-1.16.4/LICENSE) | PyInstaller macOS 构建依赖；[macholib](https://github.com/ronaldoussoren/macholib) |
 | pip 25.0.1 | MIT | 安装工具；[pip](https://github.com/pypa/pip) |
 | setuptools 84.0.0 | MIT；另保留已安装 vendored 子组件的 LICENSE/NOTICE | 构建工具；[setuptools](https://github.com/pypa/setuptools) |
 | Microsoft.Web.WebView2 SDK 1.0.3856.49 | NuGet 包 LICENSE 为三条 BSD 式再分发条件；LICENSE 与 NOTICE 均保留 | pywebview 的 SDK DLL，版本取自本机 Core.dll 的 FileVersion；[同版本 NuGet 包](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.3856.49) |
 
-上述 29 个 Python 分发包包含运行和构建依赖，不表示 pip、setuptools 或全部构建模块一定进入冻结 EXE。收集其许可是为了让项目源码与构建环境也能随包检查。NumPy 和 Pillow 的 wheel 自带多种底层库许可，所以没有只复制一个简短 BSD/MIT 标签。所有已发现的安装许可证、NOTICE 和源码包许可证文件均保留原文。1.1.0 在 EXE 中附带 UniDic Lite 和 CMUdict 词典，离线分析日英读音；这些发音词典与未分发的 MFA 声学模型不同。
+上述 Python 分发包包含运行和构建依赖，不表示 pip、setuptools 或全部构建模块一定进入冻结 EXE。收集其许可是为了让项目源码与构建环境也能随包检查。NumPy 和 Pillow 的 wheel 自带多种底层库许可，所以没有只复制一个简短 BSD/MIT 标签。所有已发现的安装许可证、NOTICE 和源码包许可证文件均保留原文。1.1.0 在 EXE 中附带 UniDic Lite 和 CMUdict 词典，离线分析日英读音；这些发音词典与未分发的 MFA 声学模型不同。
+
+## macOS 额外依赖
+
+macOS 应用包使用系统 WKWebView，不包含 Microsoft WebView2 SDK。pywebview 在 macOS 上通过 pyobjc 访问 Cocoa、WebKit 和系统服务；PyInstaller 使用 macholib 处理 Mach-O 文件。以下许可证正文随源码包提供：
+
+- pyobjc 13.0：MIT，正文 [pyobjc-13.0/LICENSE.txt](licenses/pyobjc-13.0/LICENSE.txt)。
+- macholib 1.16.4：MIT，正文 [macholib-1.16.4/LICENSE](licenses/macholib-1.16.4/LICENSE)。
+
+这些依赖只在构建和运行于 macOS 时安装；Windows 构建不会安装它们。
 
 CMUdict 的 GPL Python 包装代码对应官方 [1.1.3 源码包](licenses/sources/cmudict-1.1.3.tar.gz) 已附在发行包中。版本、PyPI 原始来源与 SHA-256 记录在 `inventory.json` 的 `language_sources` 中；fugashi、MeCab、UniDic 和 CMU 发音数据的原始许可文件分别保存在对应版本目录。
 
 `proxy_tools 0.1.0` 的已安装 wheel 与官方 0.1.0 源码包都没有附许可证正文。安装 metadata 的 MIT 标签与仓库 [LICENSE.txt](https://raw.githubusercontent.com/jtushman/proxy_tools/master/LICENSE.txt) 不一致；因此这里保留两个事实，并附仓库原文 [upstream-LICENSE.txt](licenses/proxy-tools-0.1.0/upstream-LICENSE.txt)，包括 Armin Ronacher 和 Jonathan Tushman 的版权声明。该副本按抓取日和 SHA-256 标识，不假称它原本就在 0.1.0 源码包内，也没有改写为另一许可证。
 
-Microsoft WebView2 的 SDK 辅助 DLL 位于 pywebview 安装包中，本项目为这些文件取得与 Core.dll 版本一致的官方 NuGet 许可证及 NOTICE，保存在 [Microsoft.Web.WebView2-1.0.3856.49](licenses/Microsoft.Web.WebView2-1.0.3856.49/)。这些 SDK 文件与用户系统上单独安装的 WebView2 浏览器运行时不同；发行包不附运行时安装程序。
+Microsoft WebView2 的 SDK 辅助 DLL 位于 Windows 的 pywebview 安装包中，本项目为这些文件取得与 Core.dll 版本一致的官方 NuGet 许可证及 NOTICE，保存在 [Microsoft.Web.WebView2-1.0.3856.49](licenses/Microsoft.Web.WebView2-1.0.3856.49/)。这些 SDK 文件与用户系统上单独安装的 WebView2 浏览器运行时不同；发行包不附运行时安装程序。
 
 ## Praat 对应源码与再构建
 

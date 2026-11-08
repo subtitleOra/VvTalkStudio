@@ -9,7 +9,9 @@ import uuid
 import wave
 from pathlib import Path
 
-CLI = Path(r'C:\Program Files\ACE Studio\acestudio-cli.exe')
+import platform_support
+
+CLI = platform_support.ace_cli_path()
 ROOT = Path(__file__).resolve().parent
 JOBS: dict[str, dict] = {}
 RENDER_LOCK = threading.Lock()
@@ -19,7 +21,7 @@ def cli(*args, timeout=60):
     if not CLI.is_file():
         raise ValueError('未找到 ACE Studio CLI。')
     response = subprocess.run([str(CLI), '--json', *map(str, args)], capture_output=True,
-                              timeout=timeout, creationflags=subprocess.CREATE_NO_WINDOW)
+                              timeout=timeout, creationflags=platform_support.creation_flags())
     output = response.stdout.decode('utf-8', 'replace').strip()
     if response.returncode:
         detail = response.stderr.decode('utf-8', 'replace').strip() or output
@@ -38,24 +40,36 @@ def _same_path(left, right):
     return bool(left) and Path(left).resolve() == Path(right).resolve()
 
 
-def start_render(document, exported):
+def start_render(document, exported, *, expected_project=None, render_timeout=None):
     """The caller has built and exported a validated immutable document snapshot."""
     if not RENDER_LOCK.acquire(blocking=False):
         raise ValueError('已有一项 ACE 合成任务进行中，请等待完成。')
+    process_lock = None
     try:
-        state = cli('project', 'dirty')
+        # ACE is shared by the desktop workbench and any separately started bot.
+        lock_dir = platform_support.default_data_dir()
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        process_lock = platform_support.try_file_lock(lock_dir / 'ace-render.lock')
+        if process_lock is None:
+            raise ValueError('已有一项 ACE 合成任务进行中，请等待完成。')
+        state = cli('project', 'dirty', timeout=5 if render_timeout else 60)
         if state.get('dirty'):
             raise ValueError('ACE 当前工程有未保存改动，请先在 ACE 保存，再开始试听。')
+        if expected_project is not None and not _same_path(state.get('projectPath'), expected_project):
+            raise ValueError('请在 ACE Studio 打开为 QQ 机器人指定的专用工程。')
         ident = uuid.uuid4().hex
         job = {'id': ident, 'status': 'running', 'progress': 0.0,
                'message': '正在加载语调工程…', 'directory': exported['directory'],
                'files': exported['files'], 'started_at': time.time(),
                'duration': document['duration']}
         JOBS[ident] = job
-        threading.Thread(target=_render, args=(job, state.get('projectPath'), document, exported),
+        threading.Thread(target=_render, args=(job, state.get('projectPath'), document, exported, process_lock),
+                         kwargs={'expected_project': expected_project, 'render_timeout': render_timeout},
                          daemon=True).start()
         return public_job(ident)
-    except Exception:
+    except BaseException:
+        if process_lock is not None:
+            process_lock.close()
         RENDER_LOCK.release()
         raise
 
@@ -66,30 +80,39 @@ def public_job(ident):
     return {key: value for key, value in JOBS[ident].copy().items() if not key.startswith('_')}
 
 
-def _render(job, original_path, document, exported):
+def _render(job, original_path, document, exported, process_lock, *, expected_project=None, render_timeout=None):
     target = Path(exported['files']['acep'])
     audio = target.parent / '配音.wav'
     ace_job = None
+    open_timeout = 20 if render_timeout else 120
+    command_timeout = 20 if render_timeout else 60
     try:
-        cli('project', 'open', target, timeout=120)
+        if expected_project is not None:
+            current = cli('project', 'dirty', timeout=5)
+            if current.get('dirty') or not _same_path(current.get('projectPath'), expected_project):
+                raise ValueError('ACE 已切换工程或有未保存改动，已跳过机器人合成。')
+        cli('project', 'open', target, timeout=open_timeout)
         launch = cli('export', 'audio', '--path', audio, '--from', '0s',
                      '--to', f"{document['duration'] + .15:.6f}s", '--format', 'wav',
-                     '--sample-rate', '44100', '--channels', '1', '--without-effects', 'true')
+                     '--sample-rate', '44100', '--channels', '1', '--without-effects', 'true', timeout=command_timeout)
         ace_job = launch['jobId']
         job.update(message='ACE 正在合成配音…', ace_job_id=ace_job)
-        deadline = time.monotonic() + max(600, document['duration'] * 4)
+        deadline = time.monotonic() + (render_timeout or max(600, document['duration'] * 4))
         while True:
-            state = cli('job', 'get', ace_job, timeout=30)
+            state = cli('job', 'get', ace_job, timeout=min(30, command_timeout))
             lifecycle = state.get('lifecycle')
             progress = state.get('progress')
             if isinstance(progress, (int, float)):
                 job['progress'] = max(0, min(1, progress))
             if lifecycle == 'succeeded':
+                ace_job = None
                 break
             if lifecycle in {'failed', 'cancelled', 'canceled'}:
+                ace_job = None
                 raise ValueError('ACE 合成未完成：' + json.dumps(state, ensure_ascii=False)[-1000:])
             if time.monotonic() >= deadline:
-                cli('job', 'cancel', ace_job)
+                cli('job', 'cancel', ace_job, timeout=command_timeout)
+                ace_job = None
                 raise ValueError('合成超过等待时限，任务已取消；请分段试听或检查 ACE。')
             time.sleep(1.2)
         with wave.open(str(audio), 'rb') as stream:
@@ -103,13 +126,18 @@ def _render(job, original_path, document, exported):
         job.update(status='succeeded', progress=1.0, message='配音已生成，可播放或下载 WAV。')
     except Exception as error:
         job.update(status='failed', message=str(error))
+        if expected_project is not None and ace_job is not None:
+            try:
+                cli('job', 'cancel', ace_job, timeout=command_timeout)
+            except Exception as cancel_error:
+                job['cancel_message'] = str(cancel_error)
     finally:
         # Restore a saved previous project only if the user has not edited or switched.
         if original_path and not _same_path(original_path, target):
             try:
-                current = cli('project', 'dirty')
+                current = cli('project', 'dirty', timeout=command_timeout)
                 if not current.get('dirty') and _same_path(current.get('projectPath'), target):
-                    cli('project', 'open', original_path, timeout=120)
+                    cli('project', 'open', original_path, timeout=open_timeout)
                     job['restored_project'] = original_path
             except Exception as error:
                 job['restore_message'] = '原工程自动恢复未完成：' + str(error)
@@ -120,7 +148,10 @@ def _render(job, original_path, document, exported):
         except OSError as error:
             job['record_message'] = '合成记录保存失败：' + str(error)
         finally:
-            RENDER_LOCK.release()
+            try:
+                process_lock.close()
+            finally:
+                RENDER_LOCK.release()
 
 
 def audio_path(ident):

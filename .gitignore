@@ -19,3 +19,8 @@ runtime.json
 *.key
 *.pem
 !docs/licenses/**
+
+.DS_Store
+__MACOSX/
+xcuserdata/
+*.xcuserstate
